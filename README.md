@@ -1,12 +1,12 @@
-# Advanced ML & Data Classification Pipeline
+# FIFA World Cup Winner Predictor Pipeline
 
-An end-to-end automated machine learning classification pipeline designed for diverse datasets. Includes an automated data ingestion, preprocessing, feature engineering, and hyperparameter tuning architecture.
+An automated machine learning classification pipeline specifically designed to predict FIFA World Cup Winners based on team historical statistics.
 
 **Deployed Architecture:** Features a Vercel-ready FastAPI serverless backend with a beautiful HTML/JS frontend to interact with the trained models.
 
 ## Features
-- **Automated Pipeline**: End-to-end data processing and model tuning for `scikit-learn`.
-- **Feature Engineering**: Automated variance thresholding and polynomial feature generation.
+- **Automated Pipeline**: End-to-end data processing for the Kaggle FIFA World Cup dataset using `kagglehub`.
+- **Feature Selection**: Hand-picked optimal features (FIFA Rank, Market Value, Wins, Titles, Host status) for fast inference.
 - **Model Training**: Hyperparameter tuning via GridSearchCV (Logistic Regression, Random Forest, SVM, Decision Tree, Gradient Boosting, KNN).
 - **Evaluation**: Auto-generates metrics and confusion matrices.
 - **Vercel Serverless API**: A deployable FastAPI application.

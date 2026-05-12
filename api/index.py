@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 import joblib
 import pandas as pd
 
-app = FastAPI(title="Advanced ML Pipeline API", description="API for predicting with trained models")
+app = FastAPI(title="FIFA World Cup Predictor API", description="API for predicting World Cup Winners")
 
 app.add_middleware(
     CORSMiddleware,
@@ -48,10 +48,11 @@ def predict(dataset: str, features: dict):
     """
     Expects JSON body like:
     {
-        "sepal length (cm)": 5.1,
-        "sepal width (cm)": 3.5,
-        "petal length (cm)": 1.4,
-        "petal width (cm)": 0.2
+        "fifa_rank_pre_tournament": 1,
+        "squad_total_market_value_eur": 1000000000,
+        "wins_last_4y": 30,
+        "world_cup_titles_before": 5,
+        "is_host": 0
     }
     """
     model = load_model(dataset)

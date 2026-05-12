@@ -16,7 +16,8 @@ class PipelineRunner:
     def __init__(self):
         self.data_loader = DataLoader()
         self.preprocessor = Preprocessor()
-        self.feature_engineer = FeatureEngineer(degree=2, k_best=10)
+        # Less aggressive feature engineering for faster runs
+        self.feature_engineer = FeatureEngineer(degree=1, k_best=10)
         self.model_trainer = ModelTrainer()
         self.evaluator = Evaluator()
 
@@ -28,7 +29,7 @@ class PipelineRunner:
                 results = self.run_single(dataset_name)
                 all_results.append(results)
             except Exception as e:
-                logger.error(f"Failed pipeline for {dataset_name}: {e}")
+                logger.error(f"Failed pipeline for {dataset_name}: {e}", exc_info=True)
                 
         if all_results:
             final_df = pd.concat(all_results, ignore_index=True)
@@ -67,4 +68,4 @@ class PipelineRunner:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     runner = PipelineRunner()
-    runner.run_single('iris')
+    runner.run_single('fifa')

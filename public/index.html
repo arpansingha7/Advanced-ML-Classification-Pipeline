@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced ML Pipeline - Predictions</title>
+    <title>FIFA World Cup Winner Predictor</title>
     <style>
         :root {
-            --primary: #6366f1;
-            --primary-hover: #4f46e5;
+            --primary: #10b981;
+            --primary-hover: #059669;
             --bg-color: #0f172a;
             --card-bg: #1e293b;
             --text-color: #f8fafc;
             --text-muted: #94a3b8;
             --border-color: #334155;
             --success: #10b981;
+            --fail: #ef4444;
         }
 
         body {
@@ -46,7 +47,7 @@
             margin-top: 0;
             font-size: 1.875rem;
             font-weight: 700;
-            background: linear-gradient(to right, #818cf8, #c084fc);
+            background: linear-gradient(to right, #34d399, #3b82f6);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             text-align: center;
@@ -70,7 +71,7 @@
             color: var(--text-muted);
         }
 
-        input {
+        input, select {
             width: 100%;
             padding: 0.75rem 1rem;
             background-color: #0f172a;
@@ -82,10 +83,10 @@
             box-sizing: border-box;
         }
 
-        input:focus {
+        input:focus, select:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
         }
 
         button {
@@ -109,14 +110,11 @@
             margin-top: 1.5rem;
             padding: 1.5rem;
             border-radius: 0.5rem;
-            background-color: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.2);
             display: none;
         }
 
         .result-title {
             font-size: 0.875rem;
-            color: var(--success);
             text-transform: uppercase;
             letter-spacing: 0.05em;
             font-weight: 700;
@@ -128,10 +126,17 @@
             font-weight: 700;
         }
 
-        /* Iris class mappings */
-        .class-0 { color: #f43f5e; } /* Setosa */
-        .class-1 { color: #3b82f6; } /* Versicolor */
-        .class-2 { color: #10b981; } /* Virginica */
+        .winner {
+            background-color: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .not-winner {
+            background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: var(--fail);
+        }
 
         .loading {
             display: none;
@@ -144,34 +149,41 @@
 <body>
     <div class="container">
         <div class="card">
-            <h1>Iris Species Predictor</h1>
-            <p class="subtitle">Powered by our Advanced ML Pipeline deployed on Vercel</p>
+            <h1>FIFA World Cup Predictor</h1>
+            <p class="subtitle">Predict if a team can win the World Cup using our ML Pipeline</p>
 
             <form id="predict-form">
                 <div class="form-group">
-                    <label for="sepal_length">Sepal Length (cm)</label>
-                    <input type="number" id="sepal_length" step="0.1" value="5.1" required>
+                    <label for="fifa_rank">FIFA Rank (Pre-Tournament)</label>
+                    <input type="number" id="fifa_rank" value="1" min="1" required>
                 </div>
                 <div class="form-group">
-                    <label for="sepal_width">Sepal Width (cm)</label>
-                    <input type="number" id="sepal_width" step="0.1" value="3.5" required>
+                    <label for="market_value">Squad Total Market Value (€)</label>
+                    <input type="number" id="market_value" value="1000000000" min="0" required>
                 </div>
                 <div class="form-group">
-                    <label for="petal_length">Petal Length (cm)</label>
-                    <input type="number" id="petal_length" step="0.1" value="1.4" required>
+                    <label for="wins">Wins (Last 4 Years)</label>
+                    <input type="number" id="wins" value="30" min="0" required>
                 </div>
                 <div class="form-group">
-                    <label for="petal_width">Petal Width (cm)</label>
-                    <input type="number" id="petal_width" step="0.1" value="0.2" required>
+                    <label for="titles">World Cup Titles (Before)</label>
+                    <input type="number" id="titles" value="5" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="is_host">Is Host Nation?</label>
+                    <select id="is_host">
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                    </select>
                 </div>
 
-                <button type="submit">Predict Species</button>
+                <button type="submit">Predict Outcome</button>
             </form>
 
-            <div class="loading" id="loading">Generating prediction...</div>
+            <div class="loading" id="loading">Consulting the ML Oracle...</div>
 
             <div id="result">
-                <div class="result-title">Predicted Species</div>
+                <div class="result-title" id="result-title">Prediction</div>
                 <div class="result-value" id="prediction-text"></div>
             </div>
         </div>
@@ -181,25 +193,26 @@
         const form = document.getElementById('predict-form');
         const resultDiv = document.getElementById('result');
         const predictionText = document.getElementById('prediction-text');
+        const resultTitle = document.getElementById('result-title');
         const loading = document.getElementById('loading');
-
-        const IRIS_CLASSES = ['Setosa', 'Versicolor', 'Virginica'];
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             resultDiv.style.display = 'none';
+            resultDiv.className = '';
             loading.style.display = 'block';
 
             const features = {
-                "sepal length (cm)": parseFloat(document.getElementById('sepal_length').value),
-                "sepal width (cm)": parseFloat(document.getElementById('sepal_width').value),
-                "petal length (cm)": parseFloat(document.getElementById('petal_length').value),
-                "petal width (cm)": parseFloat(document.getElementById('petal_width').value)
+                "fifa_rank_pre_tournament": parseInt(document.getElementById('fifa_rank').value),
+                "squad_total_market_value_eur": parseInt(document.getElementById('market_value').value),
+                "wins_last_4y": parseInt(document.getElementById('wins').value),
+                "world_cup_titles_before": parseInt(document.getElementById('titles').value),
+                "is_host": parseInt(document.getElementById('is_host').value)
             };
 
             try {
-                const response = await fetch('/api/predict/iris', {
+                const response = await fetch('/api/predict/fifa', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -213,14 +226,14 @@
 
                 const data = await response.json();
                 
-                let predClass = data.prediction;
-                let className = IRIS_CLASSES[predClass] || `Class ${predClass}`;
+                let isWinner = data.prediction === 1;
                 
-                predictionText.innerHTML = `<span class="class-${predClass}">${className}</span>`;
+                resultDiv.classList.add(isWinner ? 'winner' : 'not-winner');
+                predictionText.innerHTML = isWinner ? '🏆 LIKELY WINNER' : '❌ UNLIKELY WINNER';
                 
                 if (data.probability) {
-                    const probStr = (data.probability[predClass] * 100).toFixed(1);
-                    predictionText.innerHTML += ` <span style="font-size: 0.875rem; color: var(--text-muted); font-weight: normal;">(${probStr}% confidence)</span>`;
+                    const probStr = (data.probability[data.prediction] * 100).toFixed(1);
+                    predictionText.innerHTML += ` <br><span style="font-size: 0.875rem; font-weight: normal; opacity: 0.8;">(${probStr}% confidence)</span>`;
                 }
 
                 resultDiv.style.display = 'block';
