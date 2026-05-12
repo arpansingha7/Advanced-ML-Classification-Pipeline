@@ -26,13 +26,33 @@ app.add_middleware(
 
 # Global variables for models to prevent reloading on every request
 MODELS = {}
+PREPROCESSOR = None
+FEATURE_ENGINEER = None
 
-def load_model(dataset: str, model_type: str = "random_forest"):
+def load_pipeline_components(dataset: str, model_type: str = "random_forest"):
+    global PREPROCESSOR, FEATURE_ENGINEER
+    
     model_key = f"{dataset}_{model_type}"
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    models_dir = os.path.join(base_dir, "models")
+    
+    # Load preprocessor if not loaded
+    if PREPROCESSOR is None:
+        prep_path = os.path.join(models_dir, f"{dataset}_preprocessor.pkl")
+        if os.path.exists(prep_path):
+            PREPROCESSOR = joblib.load(prep_path)
+            
+    # Load feature engineer if not loaded
+    if FEATURE_ENGINEER is None:
+        fe_path = os.path.join(models_dir, f"{dataset}_feature_engineer.pkl")
+        if os.path.exists(fe_path):
+            FEATURE_ENGINEER = joblib.load(fe_path)
+    
+    # Load model
     if model_key in MODELS:
         return MODELS[model_key]
         
-    model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models", f"{model_key}.pkl")
+    model_path = os.path.join(models_dir, f"{model_key}.pkl")
     if not os.path.exists(model_path):
         raise HTTPException(status_code=404, detail=f"Model not found at {model_path}")
         
@@ -68,11 +88,19 @@ def predict(dataset: str, features: dict):
         "is_host": 0
     }
     """
-    model = load_model(dataset)
+    model = load_pipeline_components(dataset)
     
     try:
         # Create DataFrame from input
         df = pd.DataFrame([features])
+        
+        # Apply preprocessing
+        if PREPROCESSOR:
+            df = PREPROCESSOR.transform(df)
+            
+        # Apply feature engineering
+        if FEATURE_ENGINEER:
+            df = FEATURE_ENGINEER.transform(df)
         
         # Predict
         prediction = model.predict(df)[0]
