@@ -3,205 +3,397 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FIFA World Cup Winner Predictor</title>
+    <title>FIFA World Cup Predictor</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Confetti JS -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
     <style>
         :root {
             --primary: #10b981;
-            --primary-hover: #059669;
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-color: #f8fafc;
+            --primary-glow: rgba(16, 185, 129, 0.4);
+            --secondary: #3b82f6;
+            --bg-dark: #09090b;
+            --card-bg: rgba(24, 24, 27, 0.6);
+            --text-main: #f8fafc;
             --text-muted: #94a3b8;
-            --border-color: #334155;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --input-bg: rgba(0, 0, 0, 0.2);
             --success: #10b981;
             --fail: #ef4444;
         }
 
         body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.15), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(59, 130, 246, 0.15), transparent 25%);
+            color: var(--text-main);
             margin: 0;
             padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background Elements */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: -1;
+            animation: float 20s infinite ease-in-out;
+        }
+        .orb-1 {
+            width: 300px; height: 300px;
+            background: rgba(16, 185, 129, 0.2);
+            top: 10%; left: 20%;
+        }
+        .orb-2 {
+            width: 400px; height: 400px;
+            background: rgba(59, 130, 246, 0.15);
+            bottom: 10%; right: 10%;
+            animation-delay: -10s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(30px, -50px); }
+            66% { transform: translate(-20px, 40px); }
         }
 
         .container {
             width: 100%;
-            max-width: 600px;
+            max-width: 500px;
             padding: 2rem;
+            position: relative;
+            z-index: 10;
         }
 
+        /* Glassmorphism Card */
         .card {
-            background-color: var(--card-bg);
-            border-radius: 1rem;
-            padding: 2rem;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
             border: 1px solid var(--border-color);
+            transition: transform 0.3s ease;
         }
 
-        h1 {
-            margin-top: 0;
-            font-size: 1.875rem;
-            font-weight: 700;
-            background: linear-gradient(to right, #34d399, #3b82f6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-align: center;
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
 
-        p.subtitle {
+        .header {
             text-align: center;
-            color: var(--text-muted);
             margin-bottom: 2rem;
         }
 
+        h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #34d399, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 400;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+        }
+
         .form-group {
-            margin-bottom: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: span 2;
         }
 
         label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-size: 0.875rem;
+            margin-bottom: 0.4rem;
+            font-size: 0.85rem;
             font-weight: 500;
             color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         input, select {
             width: 100%;
-            padding: 0.75rem 1rem;
-            background-color: #0f172a;
+            padding: 0.875rem 1rem;
+            background-color: var(--input-bg);
             border: 1px solid var(--border-color);
-            border-radius: 0.5rem;
-            color: var(--text-color);
+            border-radius: 12px;
+            color: var(--text-main);
             font-size: 1rem;
-            transition: all 0.2s;
+            font-family: 'Outfit', sans-serif;
+            transition: all 0.3s ease;
             box-sizing: border-box;
         }
 
         input:focus, select:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+            box-shadow: 0 0 0 4px var(--primary-glow);
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.2em;
+        }
+
+        select option {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
         }
 
         button {
             width: 100%;
-            padding: 0.875rem;
-            background-color: var(--primary);
+            padding: 1rem;
+            margin-top: 1.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: white;
             border: none;
-            border-radius: 0.5rem;
-            font-size: 1rem;
-            font-weight: 600;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::after {
+            content: '';
+            position: absolute;
+            top: -50%; right: -50%; bottom: -50%; left: -50%;
+            background: linear-gradient(to bottom, rgba(229, 231, 235, 0), rgba(255,255,255,0.2) 50%, rgba(229, 231, 235, 0));
+            transform: rotateZ(60deg) translate(-5em, 7.5em);
+            opacity: 0;
+            transition: all 0.5s ease;
         }
 
         button:hover {
-            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
         }
 
-        #result {
-            margin-top: 1.5rem;
-            padding: 1.5rem;
-            border-radius: 0.5rem;
+        button:hover::after {
+            opacity: 1;
+            transform: rotateZ(60deg) translate(1em, -9em);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        /* Results Area */
+        #result-container {
+            margin-top: 2rem;
+            perspective: 1000px;
             display: none;
         }
 
-        .result-title {
-            font-size: 0.875rem;
+        .result-card {
+            padding: 1.5rem;
+            border-radius: 16px;
+            text-align: center;
+            animation: flipIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes flipIn {
+            0% { transform: rotateX(-90deg); opacity: 0; }
+            100% { transform: rotateX(0); opacity: 1; }
+        }
+
+        .result-card.winner {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+        }
+
+        .result-card.loser {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .result-label {
+            font-size: 0.85rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            font-weight: 700;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
             margin-bottom: 0.5rem;
         }
 
         .result-value {
-            font-size: 1.5rem;
-            font-weight: 700;
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 0.25rem;
         }
 
-        .winner {
-            background-color: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.2);
-            color: var(--success);
-        }
+        .winner .result-value { color: var(--success); }
+        .loser .result-value { color: var(--fail); }
 
-        .not-winner {
-            background-color: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.2);
-            color: var(--fail);
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            margin-top: 1rem;
+        .result-prob {
+            font-size: 0.9rem;
             color: var(--text-muted);
+        }
+
+        .loading-overlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(24, 24, 27, 0.8);
+            backdrop-filter: blur(4px);
+            border-radius: 24px;
+            z-index: 20;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .form-group.full-width { grid-column: span 1; }
+            .card { padding: 1.5rem; }
         }
     </style>
 </head>
 <body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
     <div class="container">
-        <div class="card">
-            <h1>FIFA World Cup Predictor</h1>
-            <p class="subtitle">Predict if a team can win the World Cup using our ML Pipeline</p>
+        <div class="card" id="main-card">
+            <div class="loading-overlay" id="loading">
+                <div class="spinner"></div>
+                <div style="font-weight: 500; letter-spacing: 0.05em; color: var(--primary);">ANALYZING STATS...</div>
+            </div>
+
+            <div class="header">
+                <h1>World Cup Predictor</h1>
+                <p class="subtitle">AI-Powered FIFA Tournament Forecasting</p>
+            </div>
 
             <form id="predict-form">
-                <div class="form-group">
-                    <label for="fifa_rank">FIFA Rank (Pre-Tournament)</label>
-                    <input type="number" id="fifa_rank" value="1" min="1" required>
-                </div>
-                <div class="form-group">
-                    <label for="market_value">Squad Total Market Value (€)</label>
-                    <input type="number" id="market_value" value="1000000000" min="0" required>
-                </div>
-                <div class="form-group">
-                    <label for="wins">Wins (Last 4 Years)</label>
-                    <input type="number" id="wins" value="30" min="0" required>
-                </div>
-                <div class="form-group">
-                    <label for="titles">World Cup Titles (Before)</label>
-                    <input type="number" id="titles" value="5" min="0" required>
-                </div>
-                <div class="form-group">
-                    <label for="is_host">Is Host Nation?</label>
-                    <select id="is_host">
-                        <option value="0">No</option>
-                        <option value="1">Yes</option>
-                    </select>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="fifa_rank">FIFA Rank</label>
+                        <input type="number" id="fifa_rank" value="1" min="1" required placeholder="e.g. 1">
+                    </div>
+                    <div class="form-group">
+                        <label for="titles">Past WC Titles</label>
+                        <input type="number" id="titles" value="5" min="0" required placeholder="e.g. 5">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="market_value">Squad Market Value (€)</label>
+                        <input type="number" id="market_value" value="1000000000" min="0" required placeholder="e.g. 1000000000">
+                    </div>
+                    <div class="form-group">
+                        <label for="wins">Wins (Last 4 Yrs)</label>
+                        <input type="number" id="wins" value="30" min="0" required placeholder="e.g. 30">
+                    </div>
+                    <div class="form-group">
+                        <label for="is_host">Host Nation?</label>
+                        <select id="is_host">
+                            <option value="0">No</option>
+                            <option value="1">Yes</option>
+                        </select>
+                    </div>
                 </div>
 
-                <button type="submit">Predict Outcome</button>
+                <button type="submit">Reveal Prediction</button>
             </form>
 
-            <div class="loading" id="loading">Consulting the ML Oracle...</div>
-
-            <div id="result">
-                <div class="result-title" id="result-title">Prediction</div>
-                <div class="result-value" id="prediction-text"></div>
+            <div id="result-container">
+                <div id="result-card" class="result-card">
+                    <div class="result-label">AI Forecast</div>
+                    <div class="result-value" id="prediction-text"></div>
+                    <div class="result-prob" id="probability-text"></div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
         const form = document.getElementById('predict-form');
-        const resultDiv = document.getElementById('result');
+        const resultContainer = document.getElementById('result-container');
+        const resultCard = document.getElementById('result-card');
         const predictionText = document.getElementById('prediction-text');
-        const resultTitle = document.getElementById('result-title');
+        const probabilityText = document.getElementById('probability-text');
         const loading = document.getElementById('loading');
+
+        function triggerConfetti() {
+            var duration = 3 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
+
+            function randomInRange(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            var interval = setInterval(function() {
+                var timeLeft = animationEnd - Date.now();
+
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+
+                var particleCount = 50 * (timeLeft / duration);
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+            }, 250);
+        }
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            resultDiv.style.display = 'none';
-            resultDiv.className = '';
-            loading.style.display = 'block';
+            resultContainer.style.display = 'none';
+            loading.style.display = 'flex';
 
             const features = {
                 "fifa_rank_pre_tournament": parseInt(document.getElementById('fifa_rank').value),
@@ -214,33 +406,42 @@
             try {
                 const response = await fetch('/api/predict/fifa', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(features)
                 });
 
                 if (!response.ok) {
-                    throw new Error('Prediction failed. Make sure the model exists and backend is running.');
+                    throw new Error('Prediction failed. Make sure backend is running.');
                 }
 
                 const data = await response.json();
                 
-                let isWinner = data.prediction === 1;
-                
-                resultDiv.classList.add(isWinner ? 'winner' : 'not-winner');
-                predictionText.innerHTML = isWinner ? '🏆 LIKELY WINNER' : '❌ UNLIKELY WINNER';
-                
-                if (data.probability) {
-                    const probStr = (data.probability[data.prediction] * 100).toFixed(1);
-                    predictionText.innerHTML += ` <br><span style="font-size: 0.875rem; font-weight: normal; opacity: 0.8;">(${probStr}% confidence)</span>`;
-                }
+                // Simulate network delay for UX
+                setTimeout(() => {
+                    loading.style.display = 'none';
+                    
+                    let isWinner = data.prediction === 1;
+                    
+                    resultCard.className = `result-card ${isWinner ? 'winner' : 'loser'}`;
+                    predictionText.innerHTML = isWinner ? '🏆 LIKELY CHAMPION' : '❌ ELIMINATION RISK';
+                    
+                    if (data.probability) {
+                        const prob = data.probability[data.prediction] * 100;
+                        probabilityText.innerHTML = `${prob.toFixed(1)}% Confidence Score`;
+                    } else {
+                        probabilityText.innerHTML = '';
+                    }
 
-                resultDiv.style.display = 'block';
+                    resultContainer.style.display = 'block';
+
+                    if (isWinner) {
+                        triggerConfetti();
+                    }
+                }, 800);
+
             } catch (error) {
-                alert(error.message);
-            } finally {
                 loading.style.display = 'none';
+                alert(error.message);
             }
         });
     </script>
