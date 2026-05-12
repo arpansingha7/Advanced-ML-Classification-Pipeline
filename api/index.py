@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 import joblib
 import pandas as pd
 
@@ -42,6 +42,15 @@ def load_model(dataset: str, model_type: str = "random_forest"):
 @app.get("/api/health")
 def health_check():
     return {"status": "healthy", "message": "ML Pipeline API is running!"}
+
+@app.get("/", response_class=HTMLResponse)
+def serve_frontend():
+    html_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "public", "index.html")
+    try:
+        with open(html_path, "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Frontend index.html not found.")
 
 @app.post("/api/predict/{dataset}")
 def predict(dataset: str, features: dict):
