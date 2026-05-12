@@ -26,10 +26,10 @@ class ModelTrainer:
         os.makedirs(self.models_dir, exist_ok=True)
         
         self.models = {
-            'logistic_regression': LogisticRegression(random_state=self.random_state, max_iter=1000),
-            'random_forest': RandomForestClassifier(random_state=self.random_state),
-            'svm': SVC(random_state=self.random_state, probability=True),
-            'decision_tree': DecisionTreeClassifier(random_state=self.random_state),
+            'logistic_regression': LogisticRegression(random_state=self.random_state, max_iter=1000, class_weight='balanced'),
+            'random_forest': RandomForestClassifier(random_state=self.random_state, class_weight='balanced'),
+            'svm': SVC(random_state=self.random_state, probability=True, class_weight='balanced'),
+            'decision_tree': DecisionTreeClassifier(random_state=self.random_state, class_weight='balanced'),
             'gradient_boosting': GradientBoostingClassifier(random_state=self.random_state),
             'knn': KNeighborsClassifier()
         }
