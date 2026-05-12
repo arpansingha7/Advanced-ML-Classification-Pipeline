@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced ML Pipeline - Predictions</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --success: #10b981;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            padding: 2rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 1.875rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+
+        p.subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background-color: #0f172a;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            color: var(--text-color);
+            font-size: 1rem;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+        }
+
+        button {
+            width: 100%;
+            padding: 0.875rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        #result {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            background-color: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            display: none;
+        }
+
+        .result-title {
+            font-size: 0.875rem;
+            color: var(--success);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .result-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        /* Iris class mappings */
+        .class-0 { color: #f43f5e; } /* Setosa */
+        .class-1 { color: #3b82f6; } /* Versicolor */
+        .class-2 { color: #10b981; } /* Virginica */
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 1rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>Iris Species Predictor</h1>
+            <p class="subtitle">Powered by our Advanced ML Pipeline deployed on Vercel</p>
+
+            <form id="predict-form">
+                <div class="form-group">
+                    <label for="sepal_length">Sepal Length (cm)</label>
+                    <input type="number" id="sepal_length" step="0.1" value="5.1" required>
+                </div>
+                <div class="form-group">
+                    <label for="sepal_width">Sepal Width (cm)</label>
+                    <input type="number" id="sepal_width" step="0.1" value="3.5" required>
+                </div>
+                <div class="form-group">
+                    <label for="petal_length">Petal Length (cm)</label>
+                    <input type="number" id="petal_length" step="0.1" value="1.4" required>
+                </div>
+                <div class="form-group">
+                    <label for="petal_width">Petal Width (cm)</label>
+                    <input type="number" id="petal_width" step="0.1" value="0.2" required>
+                </div>
+
+                <button type="submit">Predict Species</button>
+            </form>
+
+            <div class="loading" id="loading">Generating prediction...</div>
+
+            <div id="result">
+                <div class="result-title">Predicted Species</div>
+                <div class="result-value" id="prediction-text"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('predict-form');
+        const resultDiv = document.getElementById('result');
+        const predictionText = document.getElementById('prediction-text');
+        const loading = document.getElementById('loading');
+
+        const IRIS_CLASSES = ['Setosa', 'Versicolor', 'Virginica'];
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            resultDiv.style.display = 'none';
+            loading.style.display = 'block';
+
+            const features = {
+                "sepal length (cm)": parseFloat(document.getElementById('sepal_length').value),
+                "sepal width (cm)": parseFloat(document.getElementById('sepal_width').value),
+                "petal length (cm)": parseFloat(document.getElementById('petal_length').value),
+                "petal width (cm)": parseFloat(document.getElementById('petal_width').value)
+            };
+
+            try {
+                const response = await fetch('/api/predict/iris', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(features)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Prediction failed. Make sure the model exists and backend is running.');
+                }
+
+                const data = await response.json();
+                
+                let predClass = data.prediction;
+                let className = IRIS_CLASSES[predClass] || `Class ${predClass}`;
+                
+                predictionText.innerHTML = `<span class="class-${predClass}">${className}</span>`;
+                
+                if (data.probability) {
+                    const probStr = (data.probability[predClass] * 100).toFixed(1);
+                    predictionText.innerHTML += ` <span style="font-size: 0.875rem; color: var(--text-muted); font-weight: normal;">(${probStr}% confidence)</span>`;
+                }
+
+                resultDiv.style.display = 'block';
+            } catch (error) {
+                alert(error.message);
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
