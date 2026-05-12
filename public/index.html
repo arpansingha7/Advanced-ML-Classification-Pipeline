@@ -3,466 +3,523 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2026 World Cup Predictor</title>
-    <!-- Google Fonts: 8-bit style -->
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <title>FIFA 2026 World Cup AI Predictor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    
     <style>
         :root {
-            --neon-green: #39ff14;
-            --neon-blue: #0ff;
-            --neon-pink: #ff00ff;
-            --neon-yellow: #ffff00;
-            --bg-color: #0a0a0a;
-            --border-pixel: 4px solid var(--neon-green);
+            --neon: #39ff14;
+            --cyan: #00f5ff;
+            --pink: #ff2d78;
+            --yellow: #ffe600;
+            --bg: #050505;
+            --card-bg: #0d0d0d;
+            --border: 3px solid var(--neon);
         }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             font-family: 'Press Start 2P', cursive;
-            background-color: var(--bg-color);
-            color: var(--neon-green);
-            margin: 0;
-            padding: 2rem 0;
+            background: var(--bg);
+            color: var(--neon);
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
+            padding: 2rem 1rem;
             position: relative;
-            line-height: 1.5;
-            text-shadow: 2px 2px 0px #000;
+            overflow-x: hidden;
         }
 
-        /* CRT Scanline Effect */
+        /* CRT scanlines */
         body::after {
-            content: " ";
-            display: block;
-            position: fixed;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 2;
-            background-size: 100% 2px, 3px 100%;
-            pointer-events: none;
+            content: '';
+            position: fixed; inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px);
+            pointer-events: none; z-index: 999;
         }
 
-        .container {
-            width: 100%;
-            max-width: 900px;
-            padding: 0 1.5rem;
-            box-sizing: border-box;
-            z-index: 10;
+        /* Animated grid background */
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background-image: linear-gradient(rgba(57,255,20,0.05) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(57,255,20,0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none; z-index: 0;
         }
 
-        .card {
-            background: #000;
-            border: var(--border-pixel);
+        .container { max-width: 960px; margin: 0 auto; position: relative; z-index: 1; }
+
+        /* -------- HEADER -------- */
+        .header {
+            text-align: center;
             padding: 2rem;
-            box-shadow: 8px 8px 0px var(--neon-blue);
+            border: 3px solid var(--neon);
+            background: var(--card-bg);
+            box-shadow: 0 0 30px rgba(57,255,20,0.3), inset 0 0 30px rgba(0,0,0,0.5);
             margin-bottom: 2rem;
         }
 
-        .header {
-            text-align: center;
-            margin-bottom: 3rem;
-            border-bottom: 4px dashed var(--neon-pink);
-            padding-bottom: 1.5rem;
+        .header-year {
+            font-size: 3rem;
+            color: var(--yellow);
+            text-shadow: 0 0 20px var(--yellow), 4px 4px 0 var(--pink);
+            letter-spacing: 0.1em;
+            display: block;
+            margin-bottom: 0.5rem;
         }
 
         h1 {
-            margin: 0 0 1rem 0;
-            font-size: 1.5rem;
-            color: var(--neon-yellow);
-            text-shadow: 3px 3px 0px var(--neon-pink);
+            font-size: 1.1rem;
+            color: var(--neon);
+            text-shadow: 0 0 10px var(--neon);
+            line-height: 2;
+            margin-bottom: 1rem;
+        }
+
+        .header-stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 2px dashed #222;
+        }
+
+        .stat-pill {
+            font-size: 0.5rem;
+            color: var(--cyan);
+            background: rgba(0,245,255,0.1);
+            border: 1px solid var(--cyan);
+            padding: 0.5rem 1rem;
+            text-shadow: 0 0 8px var(--cyan);
+        }
+
+        .blink { animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* -------- WINNER BANNER -------- */
+        #winner-banner {
+            display: none;
+            text-align: center;
+            padding: 1.5rem;
+            border: 3px solid var(--yellow);
+            background: rgba(255,230,0,0.05);
+            box-shadow: 0 0 25px rgba(255,230,0,0.4);
+            margin-bottom: 2rem;
+            animation: pulse-yellow 2s infinite;
+        }
+
+        @keyframes pulse-yellow {
+            0%, 100% { box-shadow: 0 0 25px rgba(255,230,0,0.4); }
+            50% { box-shadow: 0 0 50px rgba(255,230,0,0.8); }
+        }
+
+        #winner-banner .label { font-size: 0.55rem; color: var(--yellow); margin-bottom: 0.5rem; }
+        #winner-banner .winner-name { font-size: 1.4rem; color: var(--yellow); text-shadow: 0 0 20px var(--yellow), 3px 3px 0 var(--pink); }
+
+        /* -------- TABS -------- */
+        .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+
+        .tab-btn {
+            flex: 1;
+            min-width: 150px;
+            background: var(--card-bg);
+            color: var(--neon);
+            border: var(--border);
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.6rem;
+            padding: 1rem 0.5rem;
+            cursor: pointer;
+            transition: all 0.1s;
+            box-shadow: 4px 4px 0 rgba(57,255,20,0.3);
             line-height: 1.8;
         }
 
-        .blink {
-            animation: blinker 1s linear infinite;
-        }
-        @keyframes blinker { 50% { opacity: 0; } }
-
-        p.subtitle {
-            font-size: 0.7rem;
-            color: var(--neon-blue);
-        }
-
-        /* Tabs */
-        .tabs {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .tab-btn {
-            background: #000;
-            color: var(--neon-green);
-            border: var(--border-pixel);
-            font-family: 'Press Start 2P', cursive;
-            font-size: 0.7rem;
-            padding: 1rem;
-            cursor: pointer;
-            box-shadow: 4px 4px 0px var(--neon-green);
-            transition: transform 0.1s;
-        }
-
-        .tab-btn:active {
-            transform: translate(4px, 4px);
-            box-shadow: 0px 0px 0px;
-        }
-
-        .tab-btn.active {
-            background: var(--neon-green);
-            color: #000;
-            box-shadow: 4px 4px 0px var(--neon-pink);
-        }
+        .tab-btn:hover { background: rgba(57,255,20,0.1); }
+        .tab-btn:active { transform: translate(4px,4px); box-shadow: none; }
+        .tab-btn.active { background: var(--neon); color: #000; box-shadow: 4px 4px 0 var(--cyan); }
 
         .tab-content { display: none; }
-        .tab-content.active { display: block; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Single Team Predict */
-        .search-box {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-            align-items: center;
-            margin-bottom: 2rem;
+        /* -------- PREDICT PANEL -------- */
+        .predict-panel {
+            background: var(--card-bg);
+            border: var(--border);
+            padding: 2rem;
+            box-shadow: 6px 6px 0 rgba(57,255,20,0.2);
+        }
+
+        .predict-label {
+            font-size: 0.6rem;
+            color: var(--cyan);
+            margin-bottom: 1rem;
+            text-shadow: 0 0 8px var(--cyan);
         }
 
         select {
             width: 100%;
-            max-width: 400px;
             padding: 1rem;
-            background-color: #000;
-            border: var(--border-pixel);
-            color: var(--neon-yellow);
+            background: #000;
+            border: 2px solid var(--neon);
+            color: var(--yellow);
             font-family: 'Press Start 2P', cursive;
-            font-size: 0.8rem;
+            font-size: 0.7rem;
+            margin-bottom: 1.5rem;
             cursor: pointer;
         }
 
-        select:focus {
-            outline: none;
-            border-color: var(--neon-pink);
-        }
+        select:focus { outline: none; border-color: var(--pink); }
 
-        button.action-btn {
-            padding: 1.2rem 2rem;
-            background: var(--neon-pink);
+        .action-btn {
+            width: 100%;
+            padding: 1.2rem;
+            background: var(--pink);
             color: #fff;
-            border: 4px solid #fff;
+            border: 3px solid #fff;
             font-family: 'Press Start 2P', cursive;
             font-size: 0.9rem;
             cursor: pointer;
-            box-shadow: 6px 6px 0px var(--neon-blue);
+            box-shadow: 6px 6px 0 rgba(255,45,120,0.4);
+            text-shadow: 2px 2px 0 #000;
+            transition: all 0.1s;
         }
 
-        button.action-btn:active {
-            transform: translate(6px, 6px);
-            box-shadow: 0px 0px 0px;
-        }
+        .action-btn:hover { background: #ff0055; }
+        .action-btn:active { transform: translate(6px,6px); box-shadow: none; }
+        .action-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
 
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* Results Area */
-        #result-container { display: none; margin-top: 2rem; }
+        /* Result Card */
+        #result-container { display: none; margin-top: 1.5rem; }
 
         .result-card {
-            background: #111;
+            background: #000;
+            border: 3px dashed var(--yellow);
             padding: 2rem;
-            border: 4px dashed var(--neon-yellow);
             text-align: center;
         }
 
-        .result-label {
-            font-size: 0.8rem;
-            color: var(--neon-blue);
-            margin-bottom: 1.5rem;
-        }
+        .result-team { font-size: 0.7rem; color: var(--cyan); margin-bottom: 1rem; }
+        .result-stage { font-size: 1rem; color: var(--yellow); line-height: 1.8; margin-bottom: 0.5rem; }
 
-        .result-value {
-            font-size: 1.2rem;
-            color: var(--neon-green);
-            margin-bottom: 3rem;
-            line-height: 1.5;
-        }
+        /* Probability bar */
+        .prob-section { margin-top: 2rem; text-align: left; }
+        .prob-label { font-size: 0.5rem; color: #666; margin-bottom: 1.5rem; }
+        .prob-row { margin-bottom: 1rem; }
+        .prob-name { font-size: 0.5rem; color: var(--cyan); margin-bottom: 0.3rem; }
+        .prob-bar-bg { background: #111; border: 1px solid #333; height: 20px; position: relative; }
+        .prob-bar-fill { height: 100%; background: linear-gradient(90deg, var(--neon), var(--cyan)); transition: width 1s ease; }
+        .prob-pct { font-size: 0.5rem; color: var(--neon); position: absolute; right: 4px; top: 50%; transform: translateY(-50%); }
 
-        /* 8-bit Progress Bar */
-        .stage-track {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            margin: 0 auto;
-            max-width: 500px;
-            text-align: left;
-        }
-
-        .stage-node {
+        /* Stage Track */
+        .stage-track { margin-top: 2rem; text-align: left; }
+        .stage-row {
             display: flex;
             align-items: center;
             gap: 1rem;
-            font-size: 0.7rem;
-            color: #555;
-            opacity: 0.5;
+            padding: 0.8rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid #1a1a1a;
+            font-size: 0.5rem;
+            color: #333;
+            transition: all 0.3s;
+        }
+        .stage-row.reached { border-color: var(--neon); color: var(--neon); background: rgba(57,255,20,0.05); }
+        .stage-row.current { border-color: var(--yellow); color: var(--yellow); background: rgba(255,230,0,0.08); box-shadow: 0 0 15px rgba(255,230,0,0.2); animation: blink 1s step-end infinite; }
+        .stage-icon { font-size: 0.8rem; width: 20px; text-align: center; }
+
+        /* -------- LEADERBOARD -------- */
+        .lb-section { margin-bottom: 2rem; }
+
+        .lb-header {
+            font-size: 0.65rem;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+            border-left: 6px solid var(--neon);
+            background: rgba(57,255,20,0.05);
         }
 
-        .stage-node.active {
-            color: var(--neon-yellow);
-            opacity: 1;
-        }
-        
-        .stage-node.active-current {
-            color: var(--neon-green);
-            animation: blinker 1s linear infinite;
-        }
-
-        .node-box {
-            width: 20px;
-            height: 20px;
-            background: #000;
-            border: 2px solid #555;
-        }
-
-        .stage-node.active .node-box {
-            background: var(--neon-yellow);
-            border-color: var(--neon-yellow);
-        }
-        .stage-node.active-current .node-box {
-            background: var(--neon-green);
-            border-color: var(--neon-green);
-        }
-
-        /* Leaderboard View */
-        .leaderboard { display: flex; flex-direction: column; gap: 2rem; margin-top: 1rem;}
-        
-        .lb-group {
-            border: var(--border-pixel);
-            padding: 1.5rem;
-            background: #0a0a0a;
-        }
-
-        .lb-title {
-            font-size: 0.8rem;
-            color: var(--neon-pink);
-            margin-bottom: 1.5rem;
-            border-bottom: 2px dashed #333;
-            padding-bottom: 1rem;
-            line-height: 1.5;
-        }
+        .lb-header.level-4 { border-color: var(--yellow); color: var(--yellow); font-size: 0.8rem; background: rgba(255,230,0,0.05); box-shadow: 0 0 20px rgba(255,230,0,0.15); }
+        .lb-header.level-3 { border-color: var(--cyan); color: var(--cyan); background: rgba(0,245,255,0.05); }
+        .lb-header.level-2 { border-color: var(--pink); color: var(--pink); background: rgba(255,45,120,0.05); }
+        .lb-header.level-1 { border-color: #a855f7; color: #a855f7; background: rgba(168,85,247,0.05); }
+        .lb-header.level-0 { border-color: #555; color: #555; background: rgba(85,85,85,0.05); }
 
         .lb-teams {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 0.7rem;
         }
 
         .lb-team {
-            background: #000;
-            color: var(--neon-blue);
-            padding: 0.8rem;
-            border: 2px solid var(--neon-blue);
-            font-size: 0.6rem;
+            padding: 0.8rem 0.5rem;
             text-align: center;
+            font-size: 0.5rem;
+            border: 2px solid #1a1a1a;
+            background: #0a0a0a;
+            color: #888;
+            position: relative;
+            overflow: hidden;
+        }
+        .lb-team.level-4 { border-color: var(--yellow); color: var(--yellow); animation: blink 2s step-end infinite; }
+        .lb-team.level-3 { border-color: var(--cyan); color: var(--cyan); }
+        .lb-team.level-2 { border-color: var(--pink); color: var(--pink); }
+        .lb-team.level-1 { border-color: #a855f7; color: #a855f7; }
+
+        .prob-badge {
+            font-size: 0.45rem;
+            margin-top: 0.3rem;
+            color: rgba(255,255,255,0.4);
         }
 
-        .lb-group.winner { border-color: var(--neon-yellow); box-shadow: 6px 6px 0px var(--neon-yellow);}
-        .lb-group.winner .lb-title { color: var(--neon-yellow); }
-        .lb-group.winner .lb-team { border-color: var(--neon-yellow); color: var(--neon-yellow); animation: blinker 1.5s linear infinite; }
-
+        /* -------- LOADING -------- */
         .loading-overlay {
-            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.9); z-index: 100;
-            justify-content: center; align-items: center; flex-direction: column;
+            display: none; position: fixed; inset: 0;
+            background: rgba(5,5,5,0.95); z-index: 1000;
+            justify-content: center; align-items: center; flex-direction: column; gap: 2rem;
         }
+
+        .pixel-spinner {
+            width: 60px; height: 60px;
+            border: 6px solid #1a1a1a;
+            border-top-color: var(--neon);
+            animation: spin 0.8s linear infinite;
+            box-shadow: 0 0 20px rgba(57,255,20,0.5);
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-text { font-size: 0.8rem; color: var(--pink); animation: blink 0.5s step-end infinite; }
 
         @media (max-width: 600px) {
-            h1 { font-size: 1.2rem; }
-            .tab-btn { font-size: 0.6rem; }
-            .result-value { font-size: 1rem; }
-            .lb-team { font-size: 0.5rem; }
+            .header-year { font-size: 2rem; }
+            h1 { font-size: 0.8rem; }
+            .tab-btn { font-size: 0.5rem; padding: 0.8rem 0.3rem; }
+            .winner-name { font-size: 1rem !important; }
         }
     </style>
 </head>
 <body>
     <div class="loading-overlay" id="loading">
-        <div style="font-size: 1rem; color: var(--neon-pink);" class="blink" id="loading-text">LOADING...</div>
+        <div class="pixel-spinner"></div>
+        <div class="loading-text" id="loading-text">LOADING...</div>
     </div>
 
     <div class="container">
-        <div class="card">
-            <div class="header">
-                <h1>2026 FIFA WORLD CUP<br><span style="color:var(--neon-green)">AI PREDICTOR</span></h1>
-                <p class="subtitle">48 TEAMS. 104 MATCHES. 1 CHAMPION.</p>
-                <p class="subtitle blink" style="margin-top:1rem; color:var(--neon-pink);">INSERT COIN</p>
+        <!-- HEADER -->
+        <div class="header">
+            <span class="header-year">FIFA 2026</span>
+            <h1>WORLD CUP AI PREDICTOR</h1>
+            <p style="font-size:0.55rem; color:var(--pink);" class="blink">◄ INSERT COIN TO PREDICT ►</p>
+            <div class="header-stats">
+                <div class="stat-pill">48 TEAMS</div>
+                <div class="stat-pill">104 MATCHES</div>
+                <div class="stat-pill">3 HOST NATIONS</div>
+                <div class="stat-pill">92% AI ACCURACY</div>
             </div>
+        </div>
 
-            <div class="tabs">
-                <button class="tab-btn active" onclick="switchTab('tab-predict')">1 PLAYER (SELECT TEAM)</button>
-                <button class="tab-btn" onclick="switchTab('tab-leaderboard'); loadLeaderboard();">HIGH SCORES (BRACKET)</button>
-            </div>
+        <!-- WINNER BANNER -->
+        <div id="winner-banner">
+            <div class="label">▶ AI PREDICTS THE 2026 WORLD CUP WINNER ◄</div>
+            <div class="winner-name" id="winner-name">...</div>
+        </div>
 
-            <!-- Single Team Prediction -->
-            <div id="tab-predict" class="tab-content active">
-                <div class="search-box">
-                    <select id="team-select" disabled>
-                        <option value="">LOADING ROSTER...</option>
-                    </select>
-                    <button class="action-btn" id="predict-btn" disabled onclick="predictTeam()">START GAME</button>
-                </div>
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('tab-predict', this)">1P TEAM PREDICTOR</button>
+            <button class="tab-btn" onclick="switchTab('tab-leaderboard', this); loadLeaderboard();">FULL 2026 BRACKET</button>
+        </div>
+
+        <!-- PREDICT TAB -->
+        <div id="tab-predict" class="tab-content active">
+            <div class="predict-panel">
+                <div class="predict-label">SELECT YOUR NATION:</div>
+                <select id="team-select" disabled>
+                    <option value="">LOADING ROSTER...</option>
+                </select>
+                <button class="action-btn" id="predict-btn" disabled onclick="predictTeam()">▶ PREDICT FATE</button>
 
                 <div id="result-container">
-                    <div class="result-card" id="result-card">
-                        <div class="result-label" id="result-team-name">PLAYER 1</div>
-                        <div class="result-value blink" id="prediction-text">GAME OVER</div>
-                        
-                        <div class="stage-track" id="stage-track">
-                            <div class="stage-node" id="node-0"><div class="node-box"></div> GROUP STAGE / R32 / R16</div>
-                            <div class="stage-node" id="node-1"><div class="node-box"></div> QUARTER-FINALS</div>
-                            <div class="stage-node" id="node-2"><div class="node-box"></div> SEMI-FINALS</div>
-                            <div class="stage-node" id="node-3"><div class="node-box"></div> FINAL</div>
-                            <div class="stage-node" id="node-4"><div class="node-box"></div> 2026 CHAMPION!</div>
+                    <div class="result-card">
+                        <div class="result-team" id="result-team-name">TEAM</div>
+                        <div class="result-stage" id="prediction-text">---</div>
+
+                        <!-- Stage Track -->
+                        <div class="stage-track">
+                            <div class="stage-row" id="node-0"><span class="stage-icon">⚽</span> GROUP STAGE / ROUND OF 32 / ROUND OF 16</div>
+                            <div class="stage-row" id="node-1"><span class="stage-icon">⚡</span> QUARTER-FINALS</div>
+                            <div class="stage-row" id="node-2"><span class="stage-icon">🔥</span> SEMI-FINALS</div>
+                            <div class="stage-row" id="node-3"><span class="stage-icon">👑</span> 2026 FINAL</div>
+                            <div class="stage-row" id="node-4"><span class="stage-icon">🏆</span> 2026 WORLD CUP CHAMPION</div>
+                        </div>
+
+                        <!-- Win Probability -->
+                        <div class="prob-section" id="prob-section" style="display:none;">
+                            <div class="prob-label">WIN PROBABILITY BREAKDOWN:</div>
+                            <div class="prob-row">
+                                <div class="prob-name">CHAMPION</div>
+                                <div class="prob-bar-bg"><div class="prob-bar-fill" id="bar-4" style="width:0%"></div><span class="prob-pct" id="pct-4">0%</span></div>
+                            </div>
+                            <div class="prob-row">
+                                <div class="prob-name">FINALIST</div>
+                                <div class="prob-bar-bg"><div class="prob-bar-fill" id="bar-3" style="width:0%; background: linear-gradient(90deg, var(--cyan), #a855f7)"></div><span class="prob-pct" id="pct-3">0%</span></div>
+                            </div>
+                            <div class="prob-row">
+                                <div class="prob-name">SEMI-FINALIST</div>
+                                <div class="prob-bar-bg"><div class="prob-bar-fill" id="bar-2" style="width:0%; background: linear-gradient(90deg, var(--pink), var(--yellow))"></div><span class="prob-pct" id="pct-2">0%</span></div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Full Leaderboard -->
-            <div id="tab-leaderboard" class="tab-content">
-                <div class="leaderboard" id="leaderboard-container">
-                    <!-- Populated by JS -->
-                </div>
-            </div>
-
+        <!-- LEADERBOARD TAB -->
+        <div id="tab-leaderboard" class="tab-content">
+            <div id="leaderboard-container"></div>
         </div>
     </div>
 
     <script>
         const stageNames = [
-            'ELIMINATED EARLY (GROUP / R32 / R16)', 
-            'ADVANCES TO QUARTER-FINALS', 
-            'ADVANCES TO SEMI-FINALS', 
-            'REACHES THE FINAL', 
+            'ELIMINATED (GROUP / R32 / R16)',
+            'QUARTER-FINALIST',
+            'SEMI-FINALIST',
+            'FINALIST',
             '🏆 2026 WORLD CUP CHAMPION 🏆'
         ];
-        let teamsLoaded = false;
+        const stageLevelNames = [
+            '❌ EARLY ELIMINATION — GROUP / ROUND OF 32 / ROUND OF 16',
+            '⚡ QUARTER-FINALISTS',
+            '🔥 SEMI-FINALISTS',
+            '👑 FINALISTS',
+            '🏆 2026 WORLD CUP CHAMPION'
+        ];
+        let leaderboardLoaded = false;
 
-        // Initialize
         window.onload = async () => {
             try {
+                showLoading("LOADING ROSTER...");
                 const res = await fetch('/api/teams');
                 const data = await res.json();
                 const select = document.getElementById('team-select');
-                select.innerHTML = '<option value="" disabled selected>CHOOSE YOUR TEAM...</option>';
+                select.innerHTML = '<option value="" disabled selected>CHOOSE YOUR NATION...</option>';
                 data.teams.forEach(t => {
                     select.innerHTML += `<option value="${t}">${t.toUpperCase()}</option>`;
                 });
                 select.disabled = false;
                 document.getElementById('predict-btn').disabled = false;
-            } catch (e) {
-                console.error("Failed to load teams", e);
-                document.getElementById('team-select').innerHTML = '<option>ERROR LOADING ROSTER</option>';
+                hideLoading();
+            } catch(e) {
+                hideLoading();
+                console.error(e);
             }
         };
 
-        function switchTab(tabId) {
+        function switchTab(tabId, btn) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
-            event.target.classList.add('active');
+            btn.classList.add('active');
         }
 
         async function predictTeam() {
             const team = document.getElementById('team-select').value;
-            if(!team) return alert("SELECT A TEAM TO CONTINUE!");
+            if (!team) return alert("SELECT A TEAM FIRST!");
 
-            const resultContainer = document.getElementById('result-container');
-            resultContainer.style.display = 'none';
-            showLoading("CALCULATING FATE...");
-
-            for(let i=0; i<=4; i++) {
-                const node = document.getElementById('node-'+i);
-                node.className = 'stage-node';
-            }
+            document.getElementById('result-container').style.display = 'none';
+            document.querySelectorAll('.stage-row').forEach(n => n.className = 'stage-row');
+            showLoading("CALCULATING FATE FOR " + team.toUpperCase() + "...");
 
             try {
-                const response = await fetch('/api/predict/team', {
+                const res = await fetch('/api/predict/team', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({team: team})
+                    body: JSON.stringify({ team })
                 });
+                if (!res.ok) throw new Error('PREDICTION FAILED');
+                const data = await res.json();
 
-                if (!response.ok) throw new Error('CONNECTION LOST.');
-                const data = await response.json();
-                
                 setTimeout(() => {
                     hideLoading();
-                    resultContainer.style.display = 'block';
-
                     const stage = data.prediction;
-                    
-                    document.getElementById('result-team-name').innerText = team.toUpperCase() + " PREDICTION";
+                    const probs = data.probabilities || {};
+
+                    document.getElementById('result-container').style.display = 'block';
+                    document.getElementById('result-team-name').innerText = team.toUpperCase();
                     document.getElementById('prediction-text').innerText = stageNames[stage];
-                    
-                    // Retro level-up animation
-                    for(let i=0; i<=stage; i++) {
+
+                    // Animate stage track
+                    for (let i = 0; i <= stage; i++) {
                         setTimeout(() => {
-                            const node = document.getElementById('node-'+i);
-                            node.classList.add('active');
-                            if(i === stage) {
-                                node.classList.add('active-current');
-                                if(stage === 4) triggerConfetti();
-                            }
+                            const node = document.getElementById('node-' + i);
+                            node.className = i === stage ? 'stage-row current' : 'stage-row reached';
+                            if (i === 4) triggerConfetti();
                         }, i * 400);
                     }
+
+                    // Show probability bars
+                    const probSection = document.getElementById('prob-section');
+                    probSection.style.display = 'block';
+                    setTimeout(() => {
+                        [4, 3, 2].forEach(idx => {
+                            const pct = Math.round((probs[idx] || 0) * 100);
+                            document.getElementById('bar-' + idx).style.width = pct + '%';
+                            document.getElementById('pct-' + idx).innerText = pct + '%';
+                        });
+                    }, 600);
                 }, 800);
-            } catch (error) {
+            } catch(e) {
                 hideLoading();
-                alert(error.message);
+                alert(e.message);
             }
         }
 
         async function loadLeaderboard() {
-            if(teamsLoaded) return;
-            showLoading("GENERATING BRACKET...");
-            
+            if (leaderboardLoaded) return;
+            showLoading("COMPUTING 2026 BRACKET...");
+
             try {
-                const response = await fetch('/api/predict/all');
-                const data = await response.json();
-                
+                const res = await fetch('/api/predict/all');
+                const data = await res.json();
                 const container = document.getElementById('leaderboard-container');
                 container.innerHTML = '';
 
-                const groups = {4:[], 3:[], 2:[], 1:[], 0:[]};
-                data.leaderboard.forEach(item => {
-                    groups[item.prediction].push(item.team);
-                });
+                // Show winner banner
+                if (data.predicted_winner) {
+                    const banner = document.getElementById('winner-banner');
+                    banner.style.display = 'block';
+                    document.getElementById('winner-name').innerText = '🏆 ' + data.predicted_winner.toUpperCase() + ' 🏆';
+                }
 
-                for(let i=4; i>=0; i--) {
-                    if(groups[i].length === 0) continue;
-                    
-                    let isWinner = i === 4 ? 'winner' : '';
-                    let html = `<div class="lb-group ${isWinner}">
-                        <div class="lb-title">
-                            LEVEL ${i}: ${stageNames[i]} [${groups[i].length} TEAMS]
-                        </div>
-                        <div class="lb-teams">`;
-                    
-                    groups[i].forEach(team => {
-                        html += `<div class="lb-team">${team.toUpperCase()}</div>`;
+                const groups = { 4: [], 3: [], 2: [], 1: [], 0: [] };
+                data.leaderboard.forEach(item => groups[item.prediction].push(item));
+
+                for (let i = 4; i >= 0; i--) {
+                    if (groups[i].length === 0) continue;
+                    let html = `
+                        <div class="lb-section">
+                            <div class="lb-header level-${i}">LEVEL ${i}: ${stageLevelNames[i]} [${groups[i].length} TEAMS]</div>
+                            <div class="lb-teams">`;
+                    groups[i].forEach(item => {
+                        const pct = Math.round((item.winner_prob || 0) * 100);
+                        html += `<div class="lb-team level-${i}">
+                            ${item.team.toUpperCase()}
+                            <div class="prob-badge">WIN: ${pct}%</div>
+                        </div>`;
                     });
-                    
                     html += `</div></div>`;
                     container.innerHTML += html;
                 }
-                teamsLoaded = true;
-                setTimeout(() => hideLoading(), 500);
-            } catch (e) {
+
+                leaderboardLoaded = true;
                 hideLoading();
-                alert("ERROR LOADING HIGH SCORES");
+            } catch(e) {
+                hideLoading();
+                alert("ERROR LOADING BRACKET");
             }
         }
 
@@ -475,16 +532,12 @@
         }
 
         function triggerConfetti() {
-            var duration = 3 * 1000;
-            var end = Date.now() + duration;
-            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100, colors: ['#39ff14', '#0ff', '#ff00ff', '#ffff00'] };
-            function random(min, max) { return Math.random() * (max - min) + min; }
-            var interval = setInterval(function() {
-                var timeLeft = end - Date.now();
-                if (timeLeft <= 0) return clearInterval(interval);
-                var particleCount = 50 * (timeLeft / duration);
-                confetti(Object.assign({}, defaults, { particleCount, origin: { x: random(0.1, 0.3), y: Math.random() - 0.2 } }));
-                confetti(Object.assign({}, defaults, { particleCount, origin: { x: random(0.7, 0.9), y: Math.random() - 0.2 } }));
+            const end = Date.now() + 4000;
+            const colors = ['#39ff14', '#00f5ff', '#ff2d78', '#ffe600'];
+            const interval = setInterval(() => {
+                if (Date.now() > end) return clearInterval(interval);
+                const count = 60 * ((end - Date.now()) / 4000);
+                confetti({ particleCount: count, spread: 360, startVelocity: 30, colors, origin: { x: Math.random(), y: Math.random() - 0.2 } });
             }, 250);
         }
     </script>
