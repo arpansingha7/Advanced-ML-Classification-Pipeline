@@ -10,6 +10,10 @@ from fastapi.responses import JSONResponse, HTMLResponse
 import joblib
 import pandas as pd
 
+# Explicitly import src modules so Vercel's python builder bundles them
+import src.preprocessor
+import src.feature_engineer
+
 app = FastAPI(title="FIFA World Cup Predictor API", description="API for predicting World Cup Winners")
 
 app.add_middleware(
