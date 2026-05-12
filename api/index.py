@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
 import joblib
 import pandas as pd
+import numpy as np
 
 # Explicitly import src modules so Vercel's python builder bundles them
 import src.preprocessor
@@ -24,29 +25,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global variables for models to prevent reloading on every request
+# Global variables to prevent reloading on every request
 MODELS = {}
 PREPROCESSOR = None
 FEATURE_ENGINEER = None
+FIFA_2026_DATA = None
 
-def load_pipeline_components(dataset: str, model_type: str = "random_forest"):
-    global PREPROCESSOR, FEATURE_ENGINEER
+def load_pipeline_components(dataset: str = "fifa", model_type: str = "random_forest"):
+    global PREPROCESSOR, FEATURE_ENGINEER, FIFA_2026_DATA
     
     model_key = f"{dataset}_{model_type}"
     base_dir = os.path.dirname(os.path.dirname(__file__))
     models_dir = os.path.join(base_dir, "models")
+    data_dir = os.path.join(base_dir, "data")
     
-    # Load preprocessor if not loaded
+    # Load preprocessor
     if PREPROCESSOR is None:
         prep_path = os.path.join(models_dir, f"{dataset}_preprocessor.pkl")
-        if os.path.exists(prep_path):
-            PREPROCESSOR = joblib.load(prep_path)
+        if os.path.exists(prep_path): PREPROCESSOR = joblib.load(prep_path)
             
-    # Load feature engineer if not loaded
+    # Load feature engineer
     if FEATURE_ENGINEER is None:
         fe_path = os.path.join(models_dir, f"{dataset}_feature_engineer.pkl")
-        if os.path.exists(fe_path):
-            FEATURE_ENGINEER = joblib.load(fe_path)
+        if os.path.exists(fe_path): FEATURE_ENGINEER = joblib.load(fe_path)
+
+    # Load 2026 dataset
+    if FIFA_2026_DATA is None:
+        data_path = os.path.join(data_dir, f"fifa_2026.csv")
+        if os.path.exists(data_path):
+            FIFA_2026_DATA = pd.read_csv(data_path)
     
     # Load model
     if model_key in MODELS:
@@ -56,12 +63,9 @@ def load_pipeline_components(dataset: str, model_type: str = "random_forest"):
     if not os.path.exists(model_path):
         raise HTTPException(status_code=404, detail=f"Model not found at {model_path}")
         
-    try:
-        model = joblib.load(model_path)
-        MODELS[model_key] = model
-        return model
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load model: {str(e)}")
+    model = joblib.load(model_path)
+    MODELS[model_key] = model
+    return model
 
 @app.get("/api/health")
 def health_check():
@@ -76,48 +80,53 @@ def serve_frontend():
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Frontend index.html not found.")
 
-@app.post("/api/predict/{dataset}")
-def predict(dataset: str, features: dict):
-    """
-    Expects JSON body like:
-    {
-        "fifa_rank_pre_tournament": 1,
-        "squad_total_market_value_eur": 1000000000,
-        "wins_last_4y": 30,
-        "world_cup_titles_before": 5,
-        "is_host": 0
-    }
-    """
-    model = load_pipeline_components(dataset)
+@app.get("/api/teams")
+def get_teams():
+    load_pipeline_components()
+    if FIFA_2026_DATA is not None:
+        return {"teams": sorted(FIFA_2026_DATA['team'].tolist())}
+    return {"teams": []}
+
+@app.post("/api/predict/team")
+def predict_team(body: dict):
+    team_name = body.get("team")
+    if not team_name:
+        raise HTTPException(status_code=400, detail="Missing 'team' in request body")
+        
+    model = load_pipeline_components("fifa")
     
-    try:
-        # Create DataFrame from input
-        df = pd.DataFrame([features])
+    if FIFA_2026_DATA is None: 
+        raise HTTPException(status_code=500, detail="2026 Data not found")
+    
+    team_data = FIFA_2026_DATA[FIFA_2026_DATA['team'] == team_name]
+    if team_data.empty: 
+        raise HTTPException(status_code=404, detail="Team not found in 2026 dataset")
+    
+    # Drop targets and info cols
+    df = team_data.drop(columns=['winner', 'finalist', 'semi_finalist', 'quarter_finalist', 'version', 'team', 'tournament_stage'], errors='ignore')
+    
+    # Transform
+    if PREPROCESSOR: df = PREPROCESSOR.transform(df)
+    if FEATURE_ENGINEER: df = FEATURE_ENGINEER.transform(df)
+    
+    prediction = int(model.predict(df)[0])
+    return {"team": team_name, "prediction": prediction}
+
+@app.get("/api/predict/all")
+def predict_all():
+    model = load_pipeline_components("fifa")
+    if FIFA_2026_DATA is None: 
+        raise HTTPException(status_code=500, detail="2026 Data not found")
+    
+    df = FIFA_2026_DATA.drop(columns=['winner', 'finalist', 'semi_finalist', 'quarter_finalist', 'version', 'team', 'tournament_stage'], errors='ignore')
+    
+    if PREPROCESSOR: df = PREPROCESSOR.transform(df)
+    if FEATURE_ENGINEER: df = FEATURE_ENGINEER.transform(df)
+    
+    predictions = model.predict(df)
+    results = []
+    for team, pred in zip(FIFA_2026_DATA['team'], predictions):
+        results.append({"team": team, "prediction": int(pred)})
         
-        # Apply preprocessing
-        if PREPROCESSOR:
-            df = PREPROCESSOR.transform(df)
-            
-        # Apply feature engineering
-        if FEATURE_ENGINEER:
-            df = FEATURE_ENGINEER.transform(df)
-        
-        # Predict
-        prediction = model.predict(df)[0]
-        
-        # Some scikit-learn models return numpy types
-        if hasattr(prediction, 'item'):
-            prediction = prediction.item()
-            
-        probability = None
-        if hasattr(model, "predict_proba"):
-            proba = model.predict_proba(df)[0]
-            probability = proba.tolist()
-            
-        return {
-            "dataset": dataset,
-            "prediction": prediction,
-            "probability": probability
-        }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Prediction failed: {str(e)}")
+    results = sorted(results, key=lambda x: x['prediction'], reverse=True)
+    return {"leaderboard": results}
