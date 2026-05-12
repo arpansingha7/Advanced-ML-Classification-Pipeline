@@ -3,6 +3,7 @@ import pandas as pd
 import joblib
 import os
 from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import SMOTE
 from src.data_loader import DataLoader
 from src.preprocessor import Preprocessor
 from src.feature_engineer import FeatureEngineer
@@ -59,6 +60,13 @@ class PipelineRunner:
         X_train_eng = self.feature_engineer.fit_transform(X_train_prep, y_train)
         X_test_eng = self.feature_engineer.transform(X_test_prep)
         joblib.dump(self.feature_engineer, os.path.join('models', f'{dataset_name}_feature_engineer.pkl'))
+        
+        # 3.5 SMOTE Data Augmentation
+        logger.info("Applying SMOTE to balance classes synthetically...")
+        # k_neighbors=3 because some classes have very few samples (6 winners)
+        smote = SMOTE(random_state=42, k_neighbors=3)
+        X_train_eng, y_train = smote.fit_resample(X_train_eng, y_train)
+        logger.info(f"Class distribution after SMOTE:\n{y_train.value_counts().sort_index()}")
         
         # 4. Model Training & Tuning
         best_models, cv_results = self.model_trainer.train_and_tune(X_train_eng, y_train, dataset_name, models_to_run)

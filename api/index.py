@@ -31,7 +31,7 @@ PREPROCESSOR = None
 FEATURE_ENGINEER = None
 FIFA_2026_DATA = None
 
-def load_pipeline_components(dataset: str = "fifa", model_type: str = "random_forest"):
+def load_pipeline_components(dataset: str = "fifa", model_type: str = "xgboost"):
     global PREPROCESSOR, FEATURE_ENGINEER, FIFA_2026_DATA
     
     model_key = f"{dataset}_{model_type}"
